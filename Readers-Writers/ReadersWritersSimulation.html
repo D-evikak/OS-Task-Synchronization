@@ -1,201 +1,233 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Readers-Writers Semaphore Simulation</title>
+
     <style>
         body {
             font-family: Arial, sans-serif;
-            margin: 20px;
+            margin: 30px;
             background: #f4f7fb;
+            color: #222;
         }
-        h1 { color: #244b8f; }
+
+        h1 {
+            color: #244b8f;
+        }
+
+        .summary {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+
+        .card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px #00000015;
+        }
+
         button {
-            padding: 9px 16px;
+            padding: 10px 16px;
             margin: 5px;
+            border: none;
+            border-radius: 5px;
+            background: #244b8f;
+            color: white;
             cursor: pointer;
         }
-        #status, #resource {
-            margin: 12px 0;
-            font-weight: bold;
-        }
-        .table-wrap { overflow-x: auto; }
+
         table {
-            border-collapse: collapse;
             width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
             background: white;
         }
+
         th, td {
-            padding: 9px;
             border: 1px solid #ccc;
+            padding: 12px;
             text-align: left;
         }
-        th { background: #244b8f; color: white; }
-        .reading { background: #e1f5e7; }
-        .writing { background: #fff0d8; }
-        .waiting { background: #fff6c9; }
-        .other { background: #e8eafa; }
+
+        th {
+            background: #244b8f;
+            color: white;
+        }
+
+        .reader {
+            background: #e1f5e7;
+        }
+
+        .writer {
+            background: #fff0d8;
+        }
+
+        #status {
+            font-weight: bold;
+            margin: 15px 0;
+        }
     </style>
 </head>
+
 <body>
     <h1>Readers-Writers Semaphore Simulation</h1>
-    <p>Events recorded from the actual Java execution.</p>
 
-    <div id="status">Ready</div>
-    <div id="resource">Shared resource: Available</div>
+    <p>
+        This simulation displays events recorded by the Java
+        Readers-Writers synchronization program.
+    </p>
 
-    <button onclick="showAll()">Show All Events</button>
+    <div class="summary">
+        <div class="card">Readers: <strong id="readerCount">0</strong></div>
+        <div class="card">Writers: <strong id="writerCount">0</strong></div>
+        <div class="card">Events: <strong id="eventCount">0</strong></div>
+    </div>
+
+    <p id="status">Waiting for execution data...</p>
+
     <button onclick="play()">Play</button>
     <button onclick="pause()">Pause</button>
     <button onclick="resetView()">Reset</button>
+    <button onclick="showAll()">Show All Events</button>
 
-    <div class="table-wrap">
-        <table>
-            <thead>
-                <tr>
-                    <th>Time (ms)</th>
-                    <th>Thread</th>
-                    <th>State</th>
-                    <th>Event</th>
-                    <th>Value</th>
-                    <th>Resource Status</th>
-                </tr>
-            </thead>
-            <tbody id="rows"></tbody>
-        </table>
-    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>Time (ms)</th>
+                <th>Thread</th>
+                <th>State</th>
+                <th>Event</th>
+                <th>Shared Value</th>
+            </tr>
+        </thead>
+        <tbody id="eventRows"></tbody>
+    </table>
 
     <script>
-        const events = [{"time":5,"name":"Reader-2","state":"WAITING","message":"Waiting to read, round 1","value":0},{"time":5,"name":"Reader-3","state":"WAITING","message":"Waiting to read, round 1","value":0},{"time":6,"name":"Writer-2","state":"WAITING","message":"Waiting for exclusive access, round 1","value":0},{"time":5,"name":"Reader-1","state":"WAITING","message":"Waiting to read, round 1","value":0},{"time":5,"name":"Reader-4","state":"WAITING","message":"Waiting to read, round 1","value":0},{"time":20,"name":"Reader-3","state":"WAITING","message":"First reader waiting for resource","value":0},{"time":6,"name":"Writer-1","state":"WAITING","message":"Waiting for exclusive access, round 1","value":0},{"time":20,"name":"Writer-2","state":"ENTER_WRITE","message":"Entered writing section, round 1","value":0},{"time":24,"name":"Writer-2","state":"WRITING","message":"Updated value to 1, round 1","value":1},{"time":430,"name":"Writer-2","state":"EXIT_WRITE","message":"Finished writing; releasing resource, round 1","value":1},{"time":431,"name":"Writer-2","state":"RESOURCE_AVAILABLE","message":"Writer released the shared resource","value":1},{"time":431,"name":"Writer-1","state":"ENTER_WRITE","message":"Entered writing section, round 1","value":1},{"time":431,"name":"Writer-1","state":"WRITING","message":"Updated value to 2, round 1","value":2},{"time":695,"name":"Writer-2","state":"WAITING","message":"Waiting for exclusive access, round 2","value":2},{"time":835,"name":"Writer-1","state":"EXIT_WRITE","message":"Finished writing; releasing resource, round 1","value":2},{"time":835,"name":"Writer-1","state":"RESOURCE_AVAILABLE","message":"Writer released the shared resource","value":2},{"time":835,"name":"Reader-3","state":"ENTER_READ","message":"Entered reading section, round 1","value":2},{"time":836,"name":"Reader-3","state":"READING","message":"Reading shared resource, round 1","value":2},{"time":836,"name":"Reader-2","state":"ENTER_READ","message":"Entered reading section, round 1","value":2},{"time":836,"name":"Reader-2","state":"READING","message":"Reading shared resource, round 1","value":2},{"time":836,"name":"Reader-3","state":"READING","message":"Read value 2, round 1","value":2},{"time":837,"name":"Reader-4","state":"ENTER_READ","message":"Entered reading section, round 1","value":2},{"time":837,"name":"Reader-2","state":"READING","message":"Read value 2, round 1","value":2},{"time":837,"name":"Reader-4","state":"READING","message":"Reading shared resource, round 1","value":2},{"time":837,"name":"Reader-4","state":"READING","message":"Read value 2, round 1","value":2},{"time":838,"name":"Reader-1","state":"ENTER_READ","message":"Entered reading section, round 1","value":2},{"time":838,"name":"Reader-1","state":"READING","message":"Reading shared resource, round 1","value":2},{"time":838,"name":"Reader-1","state":"READING","message":"Read value 2, round 1","value":2},{"time":1085,"name":"Writer-1","state":"WAITING","message":"Waiting for exclusive access, round 2","value":2},{"time":1149,"name":"Reader-2","state":"EXIT_READ","message":"Finished reading; active readers: 3","value":2},{"time":1149,"name":"Reader-3","state":"EXIT_READ","message":"Finished reading; active readers: 2","value":2},{"time":1149,"name":"Reader-4","state":"EXIT_READ","message":"Finished reading; active readers: 1","value":2},{"time":1149,"name":"Reader-1","state":"EXIT_READ","message":"Finished reading; active readers: 0","value":2},{"time":1149,"name":"Reader-1","state":"RESOURCE_AVAILABLE","message":"Last reader released the resource","value":2},{"time":1149,"name":"Writer-2","state":"ENTER_WRITE","message":"Entered writing section, round 2","value":2},{"time":1149,"name":"Writer-2","state":"WRITING","message":"Updated value to 3, round 2","value":3},{"time":1353,"name":"Reader-1","state":"WAITING","message":"Waiting to read, round 2","value":3},{"time":1353,"name":"Reader-1","state":"WAITING","message":"First reader waiting for resource","value":3},{"time":1353,"name":"Reader-2","state":"WAITING","message":"Waiting to read, round 2","value":3},{"time":1353,"name":"Reader-3","state":"WAITING","message":"Waiting to read, round 2","value":3},{"time":1353,"name":"Reader-4","state":"WAITING","message":"Waiting to read, round 2","value":3},{"time":1559,"name":"Writer-2","state":"EXIT_WRITE","message":"Finished writing; releasing resource, round 2","value":3},{"time":1559,"name":"Writer-2","state":"RESOURCE_AVAILABLE","message":"Writer released the shared resource","value":3},{"time":1560,"name":"Writer-1","state":"ENTER_WRITE","message":"Entered writing section, round 2","value":3},{"time":1560,"name":"Writer-1","state":"WRITING","message":"Updated value to 4, round 2","value":4},{"time":1824,"name":"Writer-2","state":"WAITING","message":"Waiting for exclusive access, round 3","value":4},{"time":1963,"name":"Writer-1","state":"EXIT_WRITE","message":"Finished writing; releasing resource, round 2","value":4},{"time":1963,"name":"Reader-1","state":"ENTER_READ","message":"Entered reading section, round 2","value":4},{"time":1963,"name":"Reader-1","state":"READING","message":"Reading shared resource, round 2","value":4},{"time":1963,"name":"Reader-1","state":"READING","message":"Read value 4, round 2","value":4},{"time":1963,"name":"Reader-2","state":"ENTER_READ","message":"Entered reading section, round 2","value":4},{"time":1963,"name":"Reader-2","state":"READING","message":"Reading shared resource, round 2","value":4},{"time":1963,"name":"Reader-2","state":"READING","message":"Read value 4, round 2","value":4},{"time":1963,"name":"Reader-3","state":"ENTER_READ","message":"Entered reading section, round 2","value":4},{"time":1963,"name":"Reader-3","state":"READING","message":"Reading shared resource, round 2","value":4},{"time":1963,"name":"Reader-3","state":"READING","message":"Read value 4, round 2","value":4},{"time":1963,"name":"Writer-1","state":"RESOURCE_AVAILABLE","message":"Writer released the shared resource","value":4},{"time":1964,"name":"Reader-4","state":"ENTER_READ","message":"Entered reading section, round 2","value":4},{"time":1964,"name":"Reader-4","state":"READING","message":"Reading shared resource, round 2","value":4},{"time":1964,"name":"Reader-4","state":"READING","message":"Read value 4, round 2","value":4},{"time":2227,"name":"Writer-1","state":"WAITING","message":"Waiting for exclusive access, round 3","value":4},{"time":2273,"name":"Reader-4","state":"EXIT_READ","message":"Finished reading; active readers: 3","value":4},{"time":2273,"name":"Reader-1","state":"EXIT_READ","message":"Finished reading; active readers: 2","value":4},{"time":2273,"name":"Reader-2","state":"EXIT_READ","message":"Finished reading; active readers: 1","value":4},{"time":2275,"name":"Reader-3","state":"EXIT_READ","message":"Finished reading; active readers: 0","value":4},{"time":2275,"name":"Reader-3","state":"RESOURCE_AVAILABLE","message":"Last reader released the resource","value":4},{"time":2275,"name":"Writer-2","state":"ENTER_WRITE","message":"Entered writing section, round 3","value":4},{"time":2275,"name":"Writer-2","state":"WRITING","message":"Updated value to 5, round 3","value":5},{"time":2476,"name":"Reader-2","state":"WAITING","message":"Waiting to read, round 3","value":5},{"time":2476,"name":"Reader-3","state":"WAITING","message":"Waiting to read, round 3","value":5},{"time":2476,"name":"Reader-2","state":"WAITING","message":"First reader waiting for resource","value":5},{"time":2476,"name":"Reader-1","state":"WAITING","message":"Waiting to read, round 3","value":5},{"time":2476,"name":"Reader-4","state":"WAITING","message":"Waiting to read, round 3","value":5},{"time":2680,"name":"Writer-2","state":"EXIT_WRITE","message":"Finished writing; releasing resource, round 3","value":5},{"time":2680,"name":"Writer-2","state":"RESOURCE_AVAILABLE","message":"Writer released the shared resource","value":5},{"time":2680,"name":"Writer-1","state":"ENTER_WRITE","message":"Entered writing section, round 3","value":5},{"time":2680,"name":"Writer-1","state":"WRITING","message":"Updated value to 6, round 3","value":6},{"time":3092,"name":"Writer-1","state":"EXIT_WRITE","message":"Finished writing; releasing resource, round 3","value":6},{"time":3092,"name":"Writer-1","state":"RESOURCE_AVAILABLE","message":"Writer released the shared resource","value":6},{"time":3092,"name":"Reader-2","state":"ENTER_READ","message":"Entered reading section, round 3","value":6},{"time":3092,"name":"Reader-2","state":"READING","message":"Reading shared resource, round 3","value":6},{"time":3092,"name":"Reader-2","state":"READING","message":"Read value 6, round 3","value":6},{"time":3092,"name":"Reader-3","state":"ENTER_READ","message":"Entered reading section, round 3","value":6},{"time":3092,"name":"Reader-3","state":"READING","message":"Reading shared resource, round 3","value":6},{"time":3092,"name":"Reader-3","state":"READING","message":"Read value 6, round 3","value":6},{"time":3092,"name":"Reader-1","state":"ENTER_READ","message":"Entered reading section, round 3","value":6},{"time":3093,"name":"Reader-1","state":"READING","message":"Reading shared resource, round 3","value":6},{"time":3093,"name":"Reader-1","state":"READING","message":"Read value 6, round 3","value":6},{"time":3093,"name":"Reader-4","state":"ENTER_READ","message":"Entered reading section, round 3","value":6},{"time":3093,"name":"Reader-4","state":"READING","message":"Reading shared resource, round 3","value":6},{"time":3093,"name":"Reader-4","state":"READING","message":"Read value 6, round 3","value":6},{"time":3406,"name":"Reader-2","state":"EXIT_READ","message":"Finished reading; active readers: 3","value":6},{"time":3406,"name":"Reader-4","state":"EXIT_READ","message":"Finished reading; active readers: 2","value":6},{"time":3407,"name":"Reader-3","state":"EXIT_READ","message":"Finished reading; active readers: 1","value":6},{"time":3407,"name":"Reader-1","state":"EXIT_READ","message":"Finished reading; active readers: 0","value":6},{"time":3407,"name":"Reader-1","state":"RESOURCE_AVAILABLE","message":"Last reader released the resource","value":6}];
+        /*
+          The Java program must generate a file named events.json
+          containing its actual recorded execution events.
+        */
+
+        let events = [];
         let index = 0;
         let timer = null;
-        let activeReaders = 0;
-        let resourceStatus = 'Available';
 
-        function updateResource(e) {
-            if (e.state === 'ENTER_READ') {
-                activeReaders++;
-                resourceStatus =
-                    'Being read (' + activeReaders + ')';
+        async function loadEvents() {
+            try {
+                const response = await fetch("events.json");
 
-            } else if (e.state === 'EXIT_READ') {
-                activeReaders = Math.max(
-                    0, activeReaders - 1
-                );
-                resourceStatus = activeReaders > 0
-                    ? 'Being read (' + activeReaders + ')'
-                    : 'Available';
+                if (!response.ok) {
+                    throw new Error("Could not find events.json");
+                }
 
-            } else if (e.state === 'ENTER_WRITE') {
-                resourceStatus = 'Being written';
+                events = await response.json();
 
-            } else if (e.state === 'EXIT_WRITE') {
-                // The writer is leaving its critical section.
-                // The semaphore is released immediately after
-                // this event is recorded by the Java program.
-                resourceStatus = 'Writer exiting';
+                document.getElementById("eventCount").textContent =
+                    events.length;
 
-            } else if (e.state === 'RESOURCE_AVAILABLE') {
-                resourceStatus = activeReaders > 0
-                    ? 'Being read (' + activeReaders + ')'
-                    : 'Available';
+                document.getElementById("readerCount").textContent =
+                    new Set(
+                        events.filter(e => e.state === "READING")
+                              .map(e => e.name)
+                    ).size;
+
+                document.getElementById("writerCount").textContent =
+                    new Set(
+                        events.filter(e => e.state === "WRITING")
+                              .map(e => e.name)
+                    ).size;
+
+                document.getElementById("status").textContent =
+                    "Loaded " + events.length + " recorded events.";
+
+                showAll();
+            } catch (error) {
+                document.getElementById("status").textContent =
+                    "Execution data not loaded. Run the Java program and " +
+                    "generate events.json first.";
             }
         }
 
-        function addRow(e) {
-            updateResource(e);
+        function addRow(event) {
+            const row = document.createElement("tr");
 
-            const row = document.createElement('tr');
-
-            if (e.state === 'READING'
-                    || e.state === 'ENTER_READ') {
-                row.className = 'reading';
-            } else if (e.state === 'WRITING'
-                    || e.state === 'ENTER_WRITE') {
-                row.className = 'writing';
-            } else if (e.state === 'WAITING') {
-                row.className = 'waiting';
-            } else {
-                row.className = 'other';
-            }
+            row.className =
+                event.state === "READING" ? "reader" : "writer";
 
             [
-                e.time, e.name, e.state, e.message,
-                e.value, resourceStatus
+                event.time,
+                event.name,
+                event.state,
+                event.message,
+                event.value
             ].forEach(value => {
-                const cell = document.createElement('td');
-                cell.textContent = value;
+                const cell = document.createElement("td");
+                cell.textContent = value ?? "";
                 row.appendChild(cell);
             });
 
-            document.getElementById('rows')
-                .appendChild(row);
-
-            document.getElementById('status').textContent =
-                'Event ' + index + ' of ' + events.length;
-
-            document.getElementById('resource').textContent =
-                'Shared resource: ' + resourceStatus;
-        }
-
-        function clearView() {
-            document.getElementById('rows').innerHTML = '';
-            index = 0;
-            activeReaders = 0;
-            resourceStatus = 'Available';
-            document.getElementById('resource').textContent =
-                'Shared resource: Available';
-        }
-
-        function showAll() {
-            pause();
-            clearView();
-
-            events.forEach(e => {
-                index++;
-                addRow(e);
-            });
-
-            document.getElementById('status').textContent =
-                'Showing all ' + events.length + ' events';
+            document.getElementById("eventRows").appendChild(row);
         }
 
         function play() {
             pause();
 
             if (index >= events.length) {
-                clearView();
+                index = 0;
+                document.getElementById("eventRows").innerHTML = "";
             }
 
             timer = setInterval(() => {
                 if (index >= events.length) {
                     pause();
-                    document.getElementById('status').textContent =
-                        'Playback complete';
+                    document.getElementById("status").textContent =
+                        "Playback completed.";
                     return;
                 }
 
-                const event = events[index];
+                addRow(events[index]);
                 index++;
-                addRow(event);
-            }, 500);
+
+                document.getElementById("status").textContent =
+                    "Showing event " + index + " of " + events.length;
+            }, 700);
         }
 
         function pause() {
             if (timer !== null) {
                 clearInterval(timer);
+                timer = null;
             }
-            timer = null;
         }
 
         function resetView() {
             pause();
-            clearView();
-            document.getElementById('status').textContent =
-                'Ready';
+            index = 0;
+            document.getElementById("eventRows").innerHTML = "";
+            document.getElementById("status").textContent =
+                "Simulation reset.";
         }
+
+        function showAll() {
+            pause();
+            document.getElementById("eventRows").innerHTML = "";
+            index = 0;
+
+            events.forEach(event => addRow(event));
+            index = events.length;
+
+            document.getElementById("status").textContent =
+                "Showing all " + events.length + " events.";
+        }
+
+        loadEvents();
     </script>
 </body>
 </html>
